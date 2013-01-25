@@ -1,0 +1,90 @@
+<html>
+	<head>
+		<title>:: CLIENTE DE CHAT MULTIUSUARIO ::</title>
+		<script src="http://127.0.0.1:8056/socket.io/socket.io.js" type="text/javascript" language="javascript"></script>
+		<script type="text/javascript" language="javascript">		
+			var socket = null;
+			var authCode = '';
+			
+			/*function hndlAuthData(data)
+			{				
+				console.log(data);
+				
+				if(data.hasOwnProperty('authCookie'))
+				{
+					console.log(data.authCookie);					
+				}
+				
+				if(document.cookie)
+				{					
+					if(data.hasOwnProperty('authCookie'))
+					{						
+						document.cookie = document.cookie + "; authData=" + data.authCookie;
+					}
+										
+					var splitCommas = document.cookie.toString().split(';');
+					var hashMapKeys = new Array();
+					
+					for(var i = 0; i < splitCommas.length; i++)
+					{
+						var tempData = splitCommas[i].split('=');						
+						if(tempData[0] == 'PHPSESSID')
+						{
+							authCode = tempData[1];														
+						}						
+					}
+				}
+				else
+				{					
+					alert('Tu navegador no soporta cookies. La aplicación las necesita para poder funcionar.');
+				}
+				
+				console.log(authCode);				
+			}*/
+			
+			function hndlAuthData(data)
+			{
+				if(data.hasOwnProperty('authCookie'))
+				{
+					authCode = data.authCookie;					
+				}				
+			}
+			
+			function sendNewMessage()
+			{
+				var objSend = {};
+				objSend.authCode = authCode;
+				objSend.msg = document.getElementById('msg').value;
+				//console.log(objSend);
+				socket.emit('msg', objSend);				
+			}			
+			
+			try
+			{
+				socket = io.connect('http://127.0.0.1:8056', {"data" : "mesa"});
+				socket.on('authData', hndlAuthData);
+			}
+			catch(e)
+			{
+				alert(e);
+			}
+			
+		</script>
+	</head>
+	<body>	
+		<div id="chatResult" name="chatResult"></div>
+		<table>
+			<tr>
+				<td>MENSAJE: </td>
+				<td>
+					<input type="text" name="msg" id="msg" />
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<button onClick="sendNewMessage();">ENVIAR MENSAJE</button>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>

@@ -1,0 +1,157 @@
+<html>
+	<head>
+		<meta http-equiv='Content-Type' content='Type=text/html; charset=utf-8'>
+		<script src="http://code.jquery.com/jquery-1.8.3.min.js" type="text/javascript" language="javascript"></script>
+		<script type="text/javascript" language="javascript">
+					
+		function objectToText(object) {
+			var text = "";
+			for(var prop in object) {
+				if(typeof(object[prop]) != "function") {
+					text += prop + ":";
+					text += object[prop];
+					text += "\n";
+				}
+			}			
+			return text;
+		}
+					
+		function errorHandler(data, textStatus) {
+			var showable = "¡¡ ERROR !!\n " + objectToText(data) + "textStatus: " + textStatus;			
+			return showable;
+		}
+		
+		function makeDataRow(objData, nRow) {
+			var html = "<tr>";
+			for(var prop in objData) {
+				if(prop != "_id") {
+					html += "<td>";
+					html += "<input type='text' name='"+prop+"["+nRow+"]' id='"+prop+"["+nRow+"]' value='"+objData[prop]+"' />";
+					html += "</td>";
+				} else {
+					html += "<input type='hidden' name='uid["+nRow+"]' id='uid["+nRow+"]' value='"+objData[prop]+"' />";
+				}				
+			}
+			html += "<td><button id='modify["+nRow+"]' name='modify["+nRow+"]' onclick='javascript:updateAnimal("+nRow+");'>MODIFICAR</button></td>";
+			html += "<td><button id='delete["+nRow+"]' name='delete["+nRow+"]' onclick='javascript:deleteAnimal("+nRow+");'>BORRAR</button></td>";
+			html += "</tr>";
+			return html;
+		}					
+		
+		function readAnimals() {
+			$.ajax({
+				async: true,				
+				dataType: "json",
+				url : "http://127.0.0.1:8098/read",
+				success : function(data, textStatus, jqXHR) {					
+					var html = "";
+					html += "<table>";
+					for(var i = 0; i < data.length; i++) {						
+						html += makeDataRow(data[i], i);						
+					}
+					html += "</table>";
+					$("#listadoAnimales").html(html);
+				},
+				error : function(data, textStatus) {
+					alert(errorHandler(data, textStatus));
+				}
+			});			
+		}
+		
+		function insertAnimal() {
+			var nombre = $("#animalName").val();
+			var raza = $("#animalRace").val();
+			var objSend = {"name" : nombre, "race" : raza};
+			
+			$.ajax({
+				async: true,
+				dataType: "json",
+				data: objSend,
+				url: "http://127.0.0.1:8098/create",
+				success : function(data, textStatus, jqXHR) {					
+					if(data.hasOwnProperty("code")) {
+						if(data.code == "OK") {
+							readAnimals();
+						} else {
+							alert("PUES NO...");
+						}
+					} else {
+						console.log(JSON.stringify(data));
+					}
+				},
+				error: function(data, textStatus) {
+					alert(errorHandler(data, textStatus));
+				}
+			});
+		}
+		
+		function deleteAnimal(nRow) {
+			var uid = document.getElementById("uid["+nRow+"]").value;			
+			var objSend = {"_id" : uid};			
+			
+			$.ajax({
+				async: true,
+				dataType: "json",
+				data: objSend,
+				url: "http://127.0.0.1:8098/delete",
+				success: function(data, textStatus, jqXHR) {
+					if(data.hasOwnProperty("code")) {
+						if(data.code == "OK") {							
+							readAnimals();
+						} else {
+							alert("PUES NO...");
+						}
+					} else {
+						console.log(JSON.stringify(data));
+					}				
+				},
+				error: function(data, textStatus) {
+					alert(errorHandler(data, textStatus));
+				}
+			});			
+		}
+		
+		function updateAnimal(nRow) {
+			var uid = document.getElementById("uid["+nRow+"]").value;
+			var name = document.getElementById("name["+nRow+"]").value;
+			var race = document.getElementById("race["+nRow+"]").value;
+						
+			var objSend = {"_id" : uid, "name" : name, "race" : race};
+			
+			$.ajax({
+				async: true,
+				dataType: "json",
+				data: objSend,
+				url: "http://127.0.0.1:8098/update",
+				success: function(data, textStatus, jqXHR) {
+					if(data.hasOwnProperty("code")) {
+						if(data.code == "OK") {
+							readAnimals();
+						} else {
+							alert("PUES NO...");
+						}						 
+					} else {
+						console.log(JSON.stringify(data));
+					}
+				}, 
+				error: function(data, textStatus) {
+					alert(errorHandler(data, textStatus));					
+				}				
+			});
+		}
+		
+		</script>
+		<title>:: node.js mongoose test app ::</title>
+	</head>
+	<body>
+		<div id="filtroListadoAnimales" name="filtroListadoAnimales"></div>
+		<p><button onclick="readAnimals();">LEER ANIMALES (TODOS)</button></p>
+		<div id="listadoAnimales" name="listadoAnimales"></div>
+		<div id="newAnimal" name="newAnimal">
+			Nombre: &nbsp;<input type="text" name="animalName" id="animalName" />
+			Raza: &nbsp;<input type="text" name="animalRace" id="animalRace" />
+			<br/>
+			<button id="newAnimal" name="newAnimal" onclick="javascript:insertAnimal();">INSERTAR ANIMAL NUEVO</button>
+		</div>
+	</body>
+</html>

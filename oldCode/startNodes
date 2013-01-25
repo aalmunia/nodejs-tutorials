@@ -1,0 +1,5 @@
+node exampleChatServer.js &
+node exampleMySQL.js &
+node exampleServer.js &
+node exampleSocketMySQL.js &
+node exampleSieveSocket.js &

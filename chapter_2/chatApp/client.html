@@ -1,0 +1,51 @@
+<html>
+	<head>
+		<title>:: CLIENTE DE CHAT SIMPLE ::</title>
+		<script src="http://127.0.0.1:8045/socket.io/socket.io.js" type="text/javascript" language="javascript"></script>
+		<script src="../../libs/jquery1.8.js" type="text/javascript" language="javascript"></script>
+		
+		<script type="text/javascript" language="javascript">
+		function handleChatMessage(data)
+		{
+			var conversation = $("#conversation").html();
+			conversation += "<br/>" + data;
+			$("#conversation").html(conversation);
+		}		
+			
+		function sendNewMessage()
+		{
+			var dataSend = {};
+			var message = $("#message").val();
+			var userName = $("#userName").val();
+			dataSend.message = message;
+			dataSend.userName = userName;
+			socket.emit('msgToServer', dataSend);			
+		}
+		</script>
+		
+		<script>			
+			var socket = null;
+			
+			try
+			{
+				socket = io.connect('http://127.0.0.1:8045');
+				socket.on('msgFromServer', handleChatMessage);
+				isSocketConnected = true;
+			}
+			catch(e)
+			{
+				alert(e);							
+			}
+		</script>		
+	</head>
+	<body>
+		<div id="conversation"></div>
+		<br/>
+		<b>Nombre de usuario</b>&nbsp;&nbsp;<input type="text" name="userName" id="userName"/>
+		<br/>
+		<b>Mensaje</b>&nbsp;&nbsp;<input type="text" name="message" id="message"/>
+		<br/>
+		<button onClick="sendNewMessage()">ENVIAR</button>
+		<br/>
+	</body>
+</html>

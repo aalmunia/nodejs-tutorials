@@ -1,0 +1,306 @@
+<html>
+	<head>
+		<!-- RECUERDA QUE DEBE ESTAR VIVO DENTRO DEL SERVIDOR DE node.js QUE DEBE ESTAR ESCUCHANDO -->
+		<!-- LA IDEA ES IMPLEMENTAR PUSH DE SERVER CON ESTA LIBRERÍA DE FORMA QUE SE PUEDA HACER:		
+		1.- Conectar WebSocket a backend
+		2.- Handler de escucha
+		3.- En recepción de datos, disparar evento con ellos
+		4.- Captura de evento y renderizado de datos 		
+		-->
+		
+		<!-- socket.on('[EVENT_NAME]', [HANDLER_FUNCTION]); -->
+		<!-- ESTO ES JODIDAMENTE INCREÍBLE... ADIOS LONG POLLING PARA TODO... -->
+		<!-- FLIPANTE LO BIEN QUE FUNCIONA... KUDOS AL QUE LO HIZO, QUE LECHE, VAYA CURRO INFERNAL... -->
+		
+		<script src="http://127.0.0.1:8045/socket.io/socket.io.js" type="text/javascript" language="javascript"></script>
+		<script>
+		
+		var socket = undefined;
+		var isSocketConnected = false;
+		var socket_2 = undefined;
+			
+		//Damos por hecho que el socket está abierto, así que tendremos que hacerlo
+		//global a la página y tenerlo abierto e inicializado.
+		//En el evento 'newChatMessage' pone el texto en pantalla
+		function sendChatMessage()
+		{
+			if(isSocketConnected == true)
+			{
+				var dataSend = {};
+				dataSend.userName = $("#chatUserName").val();
+				dataSend.message = $("#chatMessage").val();			
+				socket.emit('newChatMessageToServer', dataSend);
+			}
+			else
+			{
+				alert("EL WebSocket no está abierto. No puedo hacer funcionar el chat sin ese componente...");				
+			}
+		}
+		
+		function handleChatMessage(data)
+		{
+			var actualData = $("#chatData").html();
+			var finalData = actualData + "<br/>" + data.message;
+			$("#chatData").html(finalData);
+		}
+		
+		function closeChatSession()
+		{
+			socket.emit('closeChatConnection');
+			socket = undefined;
+		}			
+		</script>
+		
+		<script>
+			try
+			{
+				socket = io.connect('http://127.0.0.1:8045');
+				socket.on('newChatMessageFromServer', handleChatMessage);
+				isSocketConnected = true;
+			}
+			catch(e)
+			{
+				alert(e);							
+			}
+		</script>
+		<style>
+		div#sieveResult {
+			width: 90%;
+			height: 90%;
+			margin-left: 5%;
+			margin-right: 5%;
+			background-color: #DDDDDD;
+			color: #FF0000;
+			overflow: scroll;
+			word-wrap: break-word;		
+		}
+		
+		table.tblData {
+			width: 90%;			
+		}
+		
+		table.sqlData {
+			font-face: Verdana;
+			font-size: 9pt;
+			border: 2px solid #000000;			
+			width: 90%;
+			margin-right: auto;
+			margin-left: auto;	
+		}
+		
+		table.sqlData > tbody > tr > td {
+			border: 1px solid #FF0000;
+		}
+		
+		table.sqlData > tbody > th {
+			background-color: #44FFFF;
+			font-size: 10pt;
+		}
+		
+		</style>		
+		<title>:: TEST PHP + node.js ::</title>
+		<script src="jquery.js"></script>
+		<script language="javascript">
+		
+		function handleResponse(dataParsed)
+		{
+			if(dataParsed.hasOwnProperty("responseType"))
+			{
+				if(dataParsed["responseType"] == "OK")
+				{
+					return true;
+				}
+				else
+				{					
+					return false;
+				}												
+			}
+			else
+			{				
+				return false;
+			}
+		}		
+				
+		function doNodeAccess(type, code)
+		{
+			var dataSend = "action=sieveOfErathostenes";
+			var upToSieve = $("#limitSieve").val();
+			
+			if(upToSieve != "" && upToSieve != undefined && upToSieve > 0)
+			{
+				dataSend += "&upToSieve=" + upToSieve;				
+			}
+						
+			$.ajax({
+				url: "http://127.0.0.1:8124",
+				dataType: "jsonp",
+				jsonpCallback: "nodeCallback",
+				data: dataSend,
+				cache: false,
+				success: function(dataParsed)
+				{					
+					var responseStat = handleResponse(dataParsed);
+					console.log("NODE RESPONSE: " + responseStat);
+					if(responseStat == true)
+					{
+						$("#sieveResult").html(JSON.stringify(dataParsed["responseMessage"]));
+					}
+					else
+					{
+						$("#sieveResult").html("ERROR");
+					}
+					console.log(responseStat);
+				},
+				error: function(jqXHR, textStatus, errorThrown)
+				{
+					alert('error ' + textStatus + " " + errorThrown);
+				}
+			});			
+		}
+		
+		function doPHPAccess(type, code)
+		{
+			var dataSend = "action=sieveOfErathostenes";
+			
+			var upToSieve = $("#limitSieve").val();
+			if(upToSieve != "" && upToSieve != undefined && upToSieve > 0)
+			{
+				dataSend += "&upToSieve=" + upToSieve;				
+			}			
+			
+			$.ajax({
+				url: "backendPHP.php",
+				dataType: "json",
+				data: dataSend,
+				cache: false,
+				success: function(dataParsed)
+				{
+					var responseStat = handleResponse(dataParsed);
+					if(responseStat == true)
+					{
+						$("#sieveResult").html(JSON.stringify(dataParsed["responseMessage"]));
+					}
+					else
+					{
+						$("#sieveResult").html("ERROR");						
+					}
+				},
+				error: function(jqXHR, textStatus, errorThrown)
+				{					
+					alert('error ' + textStatus + " " + errorThrown);
+				}
+			});			
+		}
+		
+		function makeTableFromData(data)
+		{
+			var html = "<table class='sqlData'>";
+			var nResults = data.length;
+			
+			//Cabecera de la tabla
+			if(nResults > 0)
+			{
+				html += "<thead>";
+				for (var prop in data[0])
+				{
+					html += "<th>"+ prop +"</th>";
+				}
+				html += "</thead>";
+			}
+			
+			console.log(data[0]);
+			for(var i = 0; i < nResults; i++)
+			{
+				var nStruct = data[i].length;
+				
+				if(data[i].length == undefined)
+				{
+					html += "<tr>";
+					for (var prop in data[i])
+					{
+						html += "<td>"+data[i][prop]+"</td>";
+					}
+					html += "</tr>";					
+				}
+				else
+				{
+					//Asumimos array indexado por texto, es JSON, debería ser así...
+					for(var j = 0; j < nStruct; j++)
+					{
+						html += "<tr><td>" +data[i][j]+ "</td></tr>";												
+					}
+				}				
+			}
+			html += "</table>";
+			return html;
+		}		
+		
+		function doNodeMySQL()
+		{
+			var dataSend = "sqlExec=" + $("#sqlExec").val();			
+			
+			$.ajax({
+				url: "http://127.0.0.1:8224",
+				data: dataSend,
+				dataType: "jsonp",				
+				jsonpCallback: "nodeCallback",
+				cache: false,
+				success: function(data)
+				{
+					var resultHtml = "";
+					if(data["number"])
+					{
+						resultHtml += "<b>ERROR NUMERO</b>: " + data["number"] + "<br/>";
+						resultHtml += "<b>MENSAJE</b>: " + data["message"];						
+					}
+					else
+					{						
+						resultHtml += makeTableFromData(data);						
+					}
+					$("#mysqlResults").html(resultHtml);
+				},
+				error: function()
+				{
+					console.log("WRONG RESPONSE");
+				}				
+			});
+		}
+		
+		</script>
+	</head>
+	<body>
+		<!--<button onClick="doNodeAccess('1', 'ABC');">node.js TEST 1</button>
+		<button onClick="doNodeAccess('2', 'XYZ');">node.js TEST 2</button>		
+		<button onClick="doPHPAccess('1', 'ABC');">PHP 5.3 TEST 1</button>
+		<button onClick="doPHPAccess('2', 'XYZ');">PHP 5.3 TEST 2</button>		
+		<br/>
+		<input type="text" name="limitSieve" id="limitSieve"/>
+		<br/>
+		<div id="sieveResult" name="sieveResult"></div>
+		<br/><br/>-->
+		
+		<table class="tblData">
+			<tr>
+				<td>
+					<textarea name="sqlExec" id="sqlExec" rows="5" cols="40"></textarea>
+				</td>
+				<td>
+					<button onClick="doNodeMySQL();">node.js MySQL TEST 1</button>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<div id="mysqlResults" name="mysqlResults"></div>
+				</td>
+			</tr>
+		</table>
+		
+		<div id="chatData" name="chatData"></div>
+		<br/>
+		<b>USER NAME:</b> <input type="text" name="chatUserName" id="chatUserName"/><br/>		
+		<b>MESSAGE: </b> <input type="text" name="chatMessage" id="chatMessage"/><br/>
+		<button id="sendMessage" onClick="sendChatMessage();">SEND CHAT MESSAGE</button><br/>
+		<!--<button id="closeChatSession" onClick="closeChatSession();">CLOSE CHAT SESSION</button>-->
+		
+	</body>
+</html>
